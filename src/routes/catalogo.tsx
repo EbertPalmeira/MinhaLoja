@@ -1,14 +1,13 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MessageCircle, Package, Search } from "lucide-react";
+import { MapPin, MessageCircle, Package, Search } from "lucide-react";
 import { productsQuery, type Product } from "@/lib/catalog";
 import { brl } from "@/lib/format";
+import { settingsQuery } from "@/lib/session";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-const WHATSAPP_NUMBER = "5562999999999"; // Substitua pelo WhatsApp da loja
 
 export const Route = createFileRoute("/catalogo")({
   component: CatalogoPage,
@@ -16,10 +15,14 @@ export const Route = createFileRoute("/catalogo")({
 
 function CatalogoPage() {
   const { data: products = [], isLoading } = useQuery(productsQuery);
+  const { data: settings } = useQuery(settingsQuery);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("Todas");
 
-  const activeProducts = useMemo(() => products.filter((p) => p.active), [products]);
+  const activeProducts = useMemo(
+    () => products.filter((p) => p.active && p.product_variants.some((v) => v.active)),
+    [products],
+  );
 
   const categories = useMemo(() => {
     const set = new Set<string>(["Todas"]);
@@ -43,11 +46,17 @@ function CatalogoPage() {
   }, [activeProducts, search, selectedCategory]);
 
   const handleWhatsapp = (product: Product) => {
-    const v = product.product_variants[0];
+    const v =
+      product.product_variants.find((variant) => variant.active && Number(variant.stock) > 0) ??
+      product.product_variants.find((variant) => variant.active);
     const priceText = v ? brl(v.sale_price) : "sob consulta";
     const sizeText = v?.size && v.size !== "Único" ? ` (${v.size})` : "";
     const msg = `Olá! Vi no catálogo e tenho interesse no produto: *${product.name}*${sizeText} - ${priceText}.`;
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
+    const phone = settings?.phone?.replace(/\D/g, "") ?? "";
+    const whatsappNumber = phone ? (phone.startsWith("55") ? phone : `55${phone}`) : "";
+    const url = whatsappNumber
+      ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -57,10 +66,35 @@ function CatalogoPage() {
       <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Catálogo de Produtos</h1>
+            <div className="flex items-center gap-3">
+              {settings?.logo_url ? (
+                <img
+                  src={settings.logo_url}
+                  alt=""
+                  className="h-11 w-11 rounded-xl border border-border object-cover"
+                />
+              ) : (
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                  <Package className="h-5 w-5 text-primary" />
+                </div>
+              )}
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                  Catálogo
+                </p>
+                <h1 className="text-2xl font-bold tracking-tight">
+                  {settings?.store_name ?? "Catálogo de Produtos"}
+                </h1>
+              </div>
+            </div>
             <p className="text-sm text-muted-foreground">
               Confira as novidades disponíveis e faça seu pedido direto pelo WhatsApp.
             </p>
+            {settings?.address && (
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" /> {settings.address}
+              </p>
+            )}
           </div>
 
           <div className="relative w-full sm:w-72">
@@ -117,8 +151,10 @@ function CatalogoPage() {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((product) => {
-              const mainVariant = product.product_variants[0];
-              const totalStock = product.product_variants.reduce(
+              const activeVariants = product.product_variants.filter((v) => v.active);
+              const mainVariant =
+                activeVariants.find((v) => Number(v.stock) > 0) ?? activeVariants[0];
+              const totalStock = activeVariants.reduce(
                 (acc, v) => acc + (Number(v.stock) || 0),
                 0,
               );

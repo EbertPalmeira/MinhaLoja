@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Save, Users } from "lucide-react";
+import { Copy, ExternalLink, Loader2, Save, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { settingsQuery, useMe } from "@/lib/session";
@@ -69,6 +69,29 @@ function SettingsPage() {
   });
 
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const catalogUrl =
+    typeof window === "undefined" ? "/catalogo" : `${window.location.origin}/catalogo`;
+
+  const copyCatalogLink = async () => {
+    try {
+      await navigator.clipboard.writeText(catalogUrl);
+      toast.success("Link do catálogo copiado.");
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  };
+
+  const shareCatalogLink = async () => {
+    if (navigator.share) {
+      await navigator.share({
+        title: form.store_name || "Catálogo da loja",
+        text: "Confira nosso catálogo:",
+        url: catalogUrl,
+      }).catch(() => undefined);
+      return;
+    }
+    await copyCatalogLink();
+  };
 
   return (
     <>
@@ -118,6 +141,32 @@ function SettingsPage() {
             )}
           </form>
         )}
+      </Panel>
+
+      <Panel className="mt-6" title="Catálogo público">
+        <div className="flex flex-col gap-4 p-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-muted-foreground">
+              Envie este link para seus clientes. Ele mostra somente produtos ativos e disponibiliza o pedido pelo WhatsApp.
+            </p>
+            <div className="mt-3 rounded-lg border border-border bg-muted/30 px-3 py-2">
+              <p className="break-all text-sm font-medium">{catalogUrl}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={copyCatalogLink}>
+              <Copy /> Copiar link
+            </Button>
+            <Button type="button" variant="outline" onClick={shareCatalogLink}>
+              <Share2 /> Compartilhar
+            </Button>
+            <Button type="button" asChild>
+              <a href="/catalogo" target="_blank" rel="noopener noreferrer">
+                <ExternalLink /> Abrir catálogo
+              </a>
+            </Button>
+          </div>
+        </div>
       </Panel>
 
       {isAdmin && <UsersPanel myId={me!.userId} />}

@@ -70,7 +70,7 @@ export const productsQuery = queryOptions({
       supabase
         .from("products")
         .select(
-          "id, name, code, category, active, product_variants(id, product_id, sku, size, color, sale_price, stock, min_stock, active)",
+          "id, name, code, category, active, image_url, product_variants(id, product_id, sku, size, color, sale_price, stock, min_stock, active)",
         )
         .order("name")
         .range(from, to),

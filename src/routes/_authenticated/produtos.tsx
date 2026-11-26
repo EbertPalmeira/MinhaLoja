@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ImageOff, Pencil, Plus, Search, Shirt, X } from "lucide-react";
+import { Copy, ExternalLink, ImageOff, Pencil, Plus, Search, Shirt, X } from "lucide-react";
+import { toast } from "sonner";
 import { useMe } from "@/lib/session";
 import { costsQuery, normalize, productsQuery, type Product } from "@/lib/catalog";
 import { grossMargin, unitProfit } from "@/lib/calc";
@@ -76,22 +77,41 @@ function ProductsPage() {
     setEditing(null);
   };
 
+  const copyCatalogLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/catalogo`);
+      toast.success("Link do catálogo copiado.");
+    } catch {
+      toast.error("Não foi possível copiar o link.");
+    }
+  };
+
   return (
     <>
       <PageHeader
         title="Produtos"
         description="Gerencie seus produtos, preços e estoque de forma simples."
         actions={
-          me?.canManageCatalog && (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setCreating(true);
-              }}
-            >
-              <Plus /> Novo produto
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={copyCatalogLink}>
+              <Copy /> Copiar link do catálogo
             </Button>
-          )
+            <Button type="button" variant="outline" asChild>
+              <a href="/catalogo" target="_blank" rel="noopener noreferrer">
+                <ExternalLink /> Visualizar
+              </a>
+            </Button>
+            {me?.canManageCatalog && (
+              <Button
+                onClick={() => {
+                  setEditing(null);
+                  setCreating(true);
+                }}
+              >
+                <Plus /> Novo produto
+              </Button>
+            )}
+          </div>
         }
       />
 
