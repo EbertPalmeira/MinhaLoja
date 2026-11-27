@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795025584707,
+      "tag": "0000_store_management_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795476293189,
+      "tag": "0001_tighten_table_privileges",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795476367762,
+      "tag": "0002_reset_sale_number_sequence",
+      "breakpoints": true
+    }
+  ]
+}
